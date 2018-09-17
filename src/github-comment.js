@@ -3,6 +3,13 @@ const { Bot } = require('./bot')
 const { parseFile } = require('./coverage/parse')
 const { format } = require('./coverage/format')
 
+const identity = x => x
+
+const collapsed = title => content => `<details>
+<summary><strong>${title}</strong></summary>
+${content}
+</details>`
+
 exports.formatComment = function ({
   formatted: {
     status,
@@ -14,11 +21,12 @@ exports.formatComment = function ({
   buildUrl,
   priorBuildNum,
   priorBuildUrl,
-  branch
+  branch,
+  changesFormatter = identity
 }) {
   return `
-**[Code Coverage](${baseArtifactUrl}/index.html): ${status}** 
-${changed}
+**[Code Coverage](${baseArtifactUrl}/index.html): ${status}**
+${changesFormatter(changed)}
 <details>
 <summary><strong>🗂 Folder Coverage</strong></summary>
 ${folders}
@@ -34,7 +42,8 @@ exports.postComment = function postComment ({
   coverageJsonFilename = 'coverage/coverage-final.json',
   coverageHtmlRoot = 'coverage/lcov-report',
   defaultBaseBranch = 'master',
-  root = process.cwd()
+  root = process.cwd(),
+  collapseChanges
 }) {
   const bot = Bot.create()
 
@@ -55,7 +64,8 @@ exports.postComment = function postComment ({
     buildUrl: process.env.CIRCLE_BUILD_URL,
     priorBuildNum: priorBuild,
     priorBuildUrl: process.env.CIRCLE_BUILD_URL.replace(/\/\d+$/, `/${priorBuild}`),
-    branch
+    branch,
+    changesFormatter: collapseChanges ? collapsed('File Changes') : identity
   })
 
   const result = JSON.parse(bot.comment(text))
