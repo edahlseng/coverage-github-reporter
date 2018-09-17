@@ -30,7 +30,7 @@ try {
     collapseChanges
   }
   const url = postComment(params)
-  console.log('Posted to ', url)
+  console.log('Posted to ', url);
   (statusMinimumCoverage || statusMinimumChange) && postStatus({
       coverageJsonFilename: coverageJson,
       coverageHtmlRoot: coverageHtml,
