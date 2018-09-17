@@ -19,8 +19,6 @@ const {
   statusMinimumChange
 } = args.parse(process.argv)
 
-process.exit();
-
 const { postComment, postStatus } = require('./github-comment')
 
 try {
