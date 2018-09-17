@@ -7,15 +7,19 @@ args
   .option(['h', 'coverage-html'], 'Relative path to coverage html root (for artifact links)', 'coverage/lcov-report')
   .option(['b', 'branch'], 'Base branch to use if not PR', 'master')
   .option(['c', 'collapse-changes'], 'Collapses changes in the PR comment', false)
+  .option(['', 'status-minimum-coverage'], 'Minimum coverage required for the GitHub status check', null)
+  .option(['', 'status-minimum-change'], 'Minimum change required for the GitHub status check', null)
 
 const {
   coverageJson,
   coverageHtml,
   branch,
-  collapseChanges
+  collapseChanges,
+  statusMinimumCoverage,
+  statusMinimumChange
 } = args.parse(process.argv)
 
-const { postComment } = require('./github-comment')
+const { postComment, postStatus } = require('./github-comment')
 
 try {
   const params = {
@@ -27,6 +31,12 @@ try {
   }
   const url = postComment(params)
   console.log('Posted to ', url)
+  (statusMinimumCoverage || statusMinimumChange) && postStatus({
+      coverageJsonFilename: coverageJson,
+      coverageHtmlRoot: coverageHtml,
+      statusMinimumCoverage,
+      statusMinimumChange
+  })
 } catch (err) {
   console.error(err)
 }

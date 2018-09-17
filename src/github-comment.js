@@ -73,3 +73,37 @@ exports.postComment = function postComment ({
   const result = JSON.parse(bot.comment(text))
   return result && result.html_url
 }
+
+exports.postStatus = function postStatus ({
+    coverageJsonFilename = 'coverage/coverage-final.json',
+    coverageHtmlRoot = 'coverage/lcov-report',
+    statusMinimumChange,
+    statusMinimumCoverage
+}) {
+    const bot = Bot.create()
+    const baseArtifactUrl = bot.artifactUrl(`/${coverageHtmlRoot}`)
+
+    const { priorCoverage, priorBuild } = bot.getPriorBuild(branch, coverageJsonFilename)
+    const coverage = parseFile(root, resolve(root, coverageJsonFilename))
+    const passedMinimumChange = statusMinimumChange && priorCoverage ? (coverage['*'].percent - priorCoverage['*'].percent) > statusMinimumChange : true
+    const passedMinimumCoverage = statusMinimumCoverage ? coverage['*'].percent > statusMinimumCoverage : true
+
+    const state = passedMinimumChange && passedMinimumCoverage ? 'success' : 'failure'
+    const description = passedMinimumChange && passedMinimumCoverage ? 'Your code coverage passed!'
+        : !passedMinimumChange && !passedMinimumCoverage ? 'Your code coverage was less than the minimum required, and the coverage change was also less than the minimum required.'
+        : !passedMinimumChange ? 'Your code coverage change was less than the minimum required.'
+        : 'Your code coverage was less than the minimum required.'
+
+    return fetch(`https://github.com/api/v3/org/repo/${process.env.CIRCLE_PROJECT_USERNAME}/${process.env.CIRCLE_PROJECT_REPONAME}/statuses/${COMMIT_HASH}`, {
+        method: 'POST',
+        headers: {
+            authorization: `Bearer ${GH_AUTH_TOKEN}`
+        },
+        body: JSON.stringify({
+            state: state,
+            target_url: `${baseArtifactUrl}/index.html`,
+            description: description,
+            context: "ci/circleci: tests/code-coverage"
+        })
+    })
+}
