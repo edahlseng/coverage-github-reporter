@@ -94,7 +94,7 @@ exports.postStatus = function postStatus ({
         : !passedMinimumChange ? 'Your code coverage change was less than the minimum required.'
         : 'Your code coverage was less than the minimum required.'
 
-    return fetch(`https://github.com/api/v3/org/repo/${process.env.CIRCLE_PROJECT_USERNAME}/${process.env.CIRCLE_PROJECT_REPONAME}/statuses/${COMMIT_HASH}`, {
+    return fetch(`https://github.com/api/v3/org/repo/${process.env.CIRCLE_PROJECT_USERNAME}/${process.env.CIRCLE_PROJECT_REPONAME}/statuses/${process.env.CIRCLE_SHA1}`, {
         method: 'POST',
         headers: {
             authorization: `Bearer ${GH_AUTH_TOKEN}`

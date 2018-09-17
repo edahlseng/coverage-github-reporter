@@ -36,7 +36,8 @@ try {
       coverageHtmlRoot: coverageHtml,
       statusMinimumCoverage,
       statusMinimumChange
-  })
+  }).then(() => console.log('Posted GitHub status'))
+  .catch(error => console.error('Error posting GitHub status:', error))
 } catch (err) {
   console.error(err)
 }
