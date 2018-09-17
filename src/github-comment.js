@@ -1,14 +1,16 @@
 const { resolve } = require('path')
+const { isEmpty, isNil } = require('ramda')
 const { Bot } = require('./bot')
 const { parseFile } = require('./coverage/parse')
 const { format } = require('./coverage/format')
 
 const identity = x => x
 
-const collapsed = title => content => `<details>
+const collapsed = title => content => isNil(content) || isEmpty(content) ? '' : `<details>
 <summary><strong>${title}</strong></summary>
 ${content}
-</details>`
+</details>
+`
 
 exports.formatComment = function ({
   formatted: {
