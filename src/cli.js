@@ -32,8 +32,10 @@ try {
   const url = postComment(params)
   console.log('Posted to ', url);
   (statusMinimumCoverage || statusMinimumChange) && postStatus({
+      root: process.cwd(),
       coverageJsonFilename: coverageJson,
       coverageHtmlRoot: coverageHtml,
+      defaultBaseBranch: branch,
       statusMinimumCoverage,
       statusMinimumChange
   }).then(() => console.log('Posted GitHub status'))

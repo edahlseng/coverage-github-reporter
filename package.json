@@ -27,6 +27,7 @@
     "cross-env": "^5.1.1",
     "istanbul-lib-coverage": "^1.1.1",
     "istanbul-lib-report": "^1.1.2",
+    "node-fetch": "^2.2.0",
     "pad": "^2.0.3",
     "ramda": "^0.25.0"
   },

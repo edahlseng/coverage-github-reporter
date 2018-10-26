@@ -3,6 +3,7 @@ const { isEmpty, isNil } = require('ramda')
 const { Bot } = require('./bot')
 const { parseFile } = require('./coverage/parse')
 const { format } = require('./coverage/format')
+const fetch = require('node-fetch');
 
 const identity = x => x
 
@@ -40,6 +41,8 @@ From **Circle CI [build ${buildNum}](${buildUrl})** ${priorBuildNum
     : ''} – 🤖[coverage-github-reporter](https://github.com/vivlabs/coverage-github-reporter)`
 }
 
+const bot = Bot.create()
+
 exports.postComment = function postComment ({
   coverageJsonFilename = 'coverage/coverage-final.json',
   coverageHtmlRoot = 'coverage/lcov-report',
@@ -47,7 +50,6 @@ exports.postComment = function postComment ({
   root = process.cwd(),
   collapseChanges
 }) {
-  const bot = Bot.create()
 
   const coverage = parseFile(root, resolve(root, coverageJsonFilename))
 
@@ -74,15 +76,27 @@ exports.postComment = function postComment ({
   return result && result.html_url
 }
 
+function fetchResponseToJson(response) {
+	return response.json()
+	.then(json => response.ok ? Promise.resolve(json) : Promise.reject(json));
+}
+
+function fetchResponseWithBodyText(response) {
+	return response.text()
+	.then(text => response.ok ? Promise.resolve({...response, body: text}) : Promise.reject({...response, body: text}));
+}
+
 exports.postStatus = function postStatus ({
     coverageJsonFilename = 'coverage/coverage-final.json',
     coverageHtmlRoot = 'coverage/lcov-report',
+    defaultBaseBranch = 'master',
+    root = process.cwd(),
     statusMinimumChange,
     statusMinimumCoverage
 }) {
-    const bot = Bot.create()
     const baseArtifactUrl = bot.artifactUrl(`/${coverageHtmlRoot}`)
 
+    const branch = bot.getBaseBranch(defaultBaseBranch)
     const { priorCoverage, priorBuild } = bot.getPriorBuild(branch, coverageJsonFilename)
     const coverage = parseFile(root, resolve(root, coverageJsonFilename))
     const passedMinimumChange = statusMinimumChange && priorCoverage ? (coverage['*'].percent - priorCoverage['*'].percent) > statusMinimumChange : true
@@ -94,10 +108,12 @@ exports.postStatus = function postStatus ({
         : !passedMinimumChange ? 'Your code coverage change was less than the minimum required.'
         : 'Your code coverage was less than the minimum required.'
 
-    return fetch(`https://github.com/api/v3/org/repo/${process.env.CIRCLE_PROJECT_USERNAME}/${process.env.CIRCLE_PROJECT_REPONAME}/statuses/${process.env.CIRCLE_SHA1}`, {
+    return fetch(`https://api.github.com/repos/${process.env.CIRCLE_PROJECT_USERNAME}/${process.env.CIRCLE_PROJECT_REPONAME}/statuses/${process.env.CIRCLE_SHA1}`, {
         method: 'POST',
         headers: {
-            authorization: `Bearer ${GH_AUTH_TOKEN}`
+            'content-type': 'application/json',
+            Accept: 'application/vnd.github.v3+json',
+            authorization: `token ${process.env.GH_AUTH_TOKEN}`
         },
         body: JSON.stringify({
             state: state,
@@ -106,4 +122,12 @@ exports.postStatus = function postStatus ({
             context: "ci/circleci: tests/code-coverage"
         })
     })
+    .then(response => {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.indexOf('application/json') !== -1) {
+            return fetchResponseToJson(response);
+        } else {
+            return fetchResponseWithBodyText(response);
+        }
+    });
 }
